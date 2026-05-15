@@ -173,6 +173,7 @@
       white-space: pre-line;
       overflow-wrap: break-word;
       word-break: normal;
+      font-size: 0.99rem;
     }
 
     .contract-header {
@@ -273,6 +274,10 @@
       .form-panel {
         position: static;
       }
+
+      .contract-panel {
+        order: 2;
+      }
     }
 
     @media (max-width: 640px) {
@@ -290,6 +295,10 @@
         border-radius: 14px;
         padding: 14px;
         box-shadow: 0 8px 22px rgba(13, 38, 59, 0.08);
+      }
+
+      form {
+        gap: 10px;
       }
 
       h1 {
@@ -314,8 +323,72 @@
         grid-template-columns: 1fr;
       }
 
+      .saved-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .contract {
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      .title {
+        font-size: 1rem;
+        margin-bottom: 14px;
+      }
+
+      .clause-title {
+        margin-top: 12px;
+        margin-bottom: 6px;
+        font-size: 0.92rem;
+      }
+
+      .signature-block {
+        margin-top: 14px;
+      }
+
+      .line {
+        width: 100%;
+      }
+
+      .anexo-imagem-box {
+        max-width: 100%;
+      }
+
       .contract-logo {
         width: clamp(95px, 32vw, 130px);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .page {
+        padding: 8px;
+        gap: 10px;
+      }
+
+      .panel {
+        padding: 12px;
+        border-radius: 12px;
+      }
+
+      label {
+        font-size: 0.86rem;
+      }
+
+      input, textarea, select, button {
+        border-radius: 10px;
+      }
+
+      .saved-wrapper {
+        padding: 8px;
+      }
+
+      .saved-title {
+        font-size: 0.85rem;
+      }
+
+      .contract {
+        font-size: 0.92rem;
       }
     }
 
@@ -495,7 +568,7 @@
 
           <strong>CONTRATADO:</strong>
 
-          Casa Mendes Marcenaria, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 62.887.486/0001-89, com sede na Rua Monte Roraima, nº 738, CEP 38410-340, Uberlândia/MG, telefone nº (34) 99154-6313 e endereço eletrônico: casamendes.planejadosudi@gmail.com.
+          Casa Mendes Marcenaria, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 62.887.486/0001-89, com sede na Rua Monte Roraima, nº 738, CEP 38410-340, Uberlândia/MG, telefone nº (34)99154-6313 e endereço eletrônico: casamendes.planejadosudi@gmail.com.
         </section>
 
         <section class="clause">
