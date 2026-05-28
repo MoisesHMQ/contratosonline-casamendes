@@ -180,15 +180,10 @@
       display: flex;
       justify-content: flex-end;
       align-items: center;
+      flex-wrap: wrap;
       margin-bottom: 14px;
       padding-bottom: 8px;
       border-bottom: 1px solid #d5dde6;
-    }
-
-    .contract-logo {
-      width: clamp(100px, 16vw, 150px);
-      height: auto;
-      object-fit: contain;
     }
 
     .title {
@@ -231,15 +226,13 @@
       text-align: center;
       break-inside: avoid;
       page-break-inside: avoid;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .signature-label {
       display: block;
       margin-bottom: 4px;
-    }
-
-    .print-rubrica {
-      display: none;
     }
 
     .anexo-imagem-box {
@@ -332,6 +325,12 @@
         line-height: 1.5;
       }
 
+      .contract-header {
+        justify-content: center;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+      }
+
       .title {
         font-size: 1rem;
         margin-bottom: 14px;
@@ -345,19 +344,21 @@
 
       .signature-block {
         margin-top: 14px;
+        max-width: 100%;
       }
 
       .line {
         width: 100%;
       }
 
+      .signature-label {
+        font-size: 0.9rem;
+      }
+
       .anexo-imagem-box {
         max-width: 100%;
       }
 
-      .contract-logo {
-        width: clamp(95px, 32vw, 130px);
-      }
     }
 
     @media (max-width: 480px) {
@@ -390,6 +391,7 @@
       .contract {
         font-size: 0.92rem;
       }
+
     }
 
     @media print {
@@ -425,9 +427,6 @@
         z-index: 10;
       }
 
-      .contract-logo {
-        width: 26mm;
-      }
       .clause {
         orphans: 3;
         widows: 3;
@@ -437,15 +436,6 @@
       }
       .anexo-imagem {
         max-height: 180px;
-      }
-      .print-rubrica {
-        display: flex;
-        position: fixed;
-        left: 20mm;
-        right: 20mm;
-        bottom: 8mm;
-        justify-content: space-between;
-        font-size: 9pt;
       }
     }
   </style>
@@ -527,18 +517,6 @@
         <label for="anexoImagem">Cláusula 11ª - Imagem anexa</label>
         <input id="anexoImagem" name="anexoImagem" type="file" accept="image/*">
 
-        <label for="testemunha1Nome">Testemunha 1 - Nome</label>
-        <input id="testemunha1Nome" name="testemunha1Nome" type="text" placeholder="Nome completo">
-
-        <label for="testemunha1Cpf">Testemunha 1 - CPF</label>
-        <input id="testemunha1Cpf" name="testemunha1Cpf" type="text" placeholder="000.000.000-00">
-
-        <label for="testemunha2Nome">Testemunha 2 - Nome</label>
-        <input id="testemunha2Nome" name="testemunha2Nome" type="text" placeholder="Nome completo">
-
-        <label for="testemunha2Cpf">Testemunha 2 - CPF</label>
-        <input id="testemunha2Cpf" name="testemunha2Cpf" type="text" placeholder="000.000.000-00">
-
         <button type="button" id="printButton">Imprimir / Salvar PDF</button>
         <div class="actions-grid">
           <button type="button" id="saveDraftButton" class="btn-secondary">Salvar preenchimento</button>
@@ -554,8 +532,6 @@
     <section class="panel contract-panel">
       <article class="contract">
         <div class="contract-header">
-       
-          <img class="contract-logo" src="logo-casa-mendes.png" alt="Logo Casa Mendes">
         </div>
         <div class="title"> CONTRATO DE PRESTAÇÃO DE SERVIÇOS </div>
 
@@ -568,7 +544,7 @@
 
           <strong>CONTRATADO:</strong>
 
-          Casa Mendes Marcenaria, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 62.887.486/0001-89, com sede na Rua Monte Roraima, nº 738, CEP 38410-340, Uberlândia/MG, telefone nº (34)99154-6313 e endereço eletrônico: casamendes.planejadosudi@gmail.com.
+          Casa Mendes Marcenaria, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 64.158.122/0001-93, com sede na Avenida Toledo, nº 450, CEP 34410-727, Uberlândia/MG, telefone nº (34)99671-2395 e endereço eletrônico: casamendes.planejadosudi@gmail.com.
         </section>
 
         <section class="clause">
@@ -586,6 +562,7 @@
           <div class="clause-title">CLÁUSULA 4ª – VALOR E CONDIÇÕES DE PAGAMENTO</div>
           O valor total ajustado é de R$ <span class="dynamic valorTotal">___</span> (<span class="dynamic valorTotalExtenso">preencher valor por extenso</span>).
           Forma de pagamento: <span class="dynamic pagamento">Precisa ser preenchida</span>.
+          O CONTRATADO poderá solicitar valores antecipados ou complementares sempre que forem necessários para aquisição de materiais, ferragens, acessórios, insumos, contratação de terceiros ou finalização de etapas do serviço. A continuidade da execução poderá ficar condicionada ao pagamento desses valores, desde que previamente informados ao CONTRATANTE.
         </section>
 
         <section class="clause">
@@ -621,8 +598,9 @@
         <section class="clause">
           <div class="clause-title">CLÁUSULA 9ª – RESCISÃO</div>
 
-          O contrato poderá ser rescindido em caso de descumprimento contratual.
-          A parte que der causa arcará com multa de 10% do valor total, sem prejuízo de perdas e danos.
+          O presente contrato poderá ser rescindido em caso de descumprimento de qualquer obrigação assumida pelas partes, especialmente por atraso de pagamento, recusa injustificada de recebimento, impedimento de acesso ao local de instalação, solicitação de alterações não aprovadas por escrito ou ausência de informações necessárias à execução dos serviços.
+          Caso a rescisão ocorra por iniciativa ou culpa do CONTRATANTE, este deverá pagar ao CONTRATADO os valores correspondentes aos serviços já executados, materiais adquiridos, peças produzidas, despesas comprovadas e demais custos assumidos até a data da rescisão, além de multa equivalente a 10% do valor total do contrato, sem prejuízo de perdas e danos.
+          Os valores já pagos pelo CONTRATANTE poderão ser retidos ou compensados pelo CONTRATADO para quitação dos custos, materiais, mão de obra e prejuízos decorrentes da rescisão.
         </section>
 
         <section class="clause">
@@ -673,25 +651,9 @@
         <div class="signature-block">
           <div class="line"></div>
           <strong class="signature-label">CONTRATADO:</strong>
-          <div>Casa Mendes Marcenaria CNPJ nº 62.887.486/0001-89</div>
+          <div>Casa Mendes Marcenaria CNPJ nº 64.158.122/0001-93</div>
         </div>
 
-        <div class="signature-block">
-          <div class="line"></div>
-          <strong class="signature-label">TESTEMUNHA 1:</strong>
-          <div><span class="dynamic testemunha1Nome">preencher nome da testemunha 1</span> CPF nº <span class="dynamic testemunha1Cpf">preencher CPF da testemunha 1</span></div>
-        </div>
-
-        <div class="signature-block">
-          <div class="line"></div>
-          <strong class="signature-label">TESTEMUNHA 2:</strong>
-          <div><span class="dynamic testemunha2Nome">preencher nome da testemunha 2</span> CPF nº <span class="dynamic testemunha2Cpf">preencher CPF da testemunha 2</span></div>
-        </div>
-
-        <div class="print-rubrica">
-          <span>Rubrica do Contratante: ____________________</span>
-          <span>Rubrica do Contratado: ____________________</span>
-        </div>
       </article>
     </section>
   </main>
@@ -726,11 +688,7 @@
       dia: "preenchida",
       mes: "preenchida",
       ano: "preenchida",
-      anexos: "Sem anexos informados.",
-      testemunha1Nome: "preencher nome da testemunha 1",
-      testemunha1Cpf: "preencher CPF da testemunha 1",
-      testemunha2Nome: "preencher nome da testemunha 2",
-      testemunha2Cpf: "preencher CPF da testemunha 2"
+      anexos: "Sem anexos informados."
     };
 
     function updateField(name, value) {
