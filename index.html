@@ -186,6 +186,12 @@
       border-bottom: 1px solid #d5dde6;
     }
 
+    .logo-empresa {
+      height: 60px;
+      width: auto;
+      object-fit: contain;
+    }
+
     .title {
       text-align: center;
       font-weight: 700;
@@ -255,6 +261,41 @@
       margin: 0;
       color: #5d6977;
       font-size: 0.92rem;
+    }
+
+    .progress-wrapper {
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      background: #f0f6ff;
+      border-radius: 10px;
+      border: 1px solid #d5dde6;
+    }
+
+    .progress-track {
+      height: 8px;
+      background: #d5dde6;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-label {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .field-error {
+      border-color: #e05252 !important;
+      box-shadow: 0 0 0 3px rgba(224, 82, 82, 0.15) !important;
+      background-color: #fff8f8 !important;
     }
 
     @media (max-width: 900px) {
@@ -398,6 +439,12 @@
       @page {
         size: 210mm 297mm;
         margin: 32mm 20mm 24mm 20mm;
+        @bottom-center {
+          content: "Página " counter(page) " de " counter(pages);
+          font-size: 9pt;
+          color: #555;
+          font-family: "Times New Roman", Times, serif;
+        }
       }
 
       body {
@@ -414,17 +461,16 @@
       }
 
       .contract-header {
-        position: fixed;
-        top: 1mm;
-        left: 20mm;
-        right: 1mm;
-        bottom: auto;
-        margin: 0;
-        width: auto;
-        padding-bottom: 0;
+        position: static;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
         border-bottom: 0;
         justify-content: flex-end;
-        z-index: 10;
+      }
+
+      .logo-empresa {
+        height: 52px;
+        width: auto;
       }
 
       .clause {
@@ -444,6 +490,12 @@
   <main class="page">
     <section class="panel form-panel">
       <h1>Preencher Contrato</h1>
+      <div class="progress-wrapper">
+        <div class="progress-track">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <span class="progress-label" id="progressLabel">0 de 16 campos preenchidos (0%)</span>
+      </div>
       <form id="contractForm">
         <label for="nomeContratante">Cláusula 1ª - Nome do contratante</label>
         <input id="nomeContratante" name="nomeContratante" type="text" placeholder="Nome completo">
@@ -532,8 +584,9 @@
     <section class="panel contract-panel">
       <article class="contract">
         <div class="contract-header">
+          <img src="logo-casa-mendes.png" alt="Logo Casa Mendes" class="logo-empresa">
         </div>
-        <div class="title"> CONTRATO DE PRESTAÇÃO DE SERVIÇOS </div>
+        <div class="title"> CONTRATO DE PRESTAÇÃO DE SERVIÇOS CASA MENDES </div>
 
         <section class="clause">
           <div class="clause-title">CLÁUSULA 1ª – IDENTIFICAÇÃO DAS PARTES</div>
@@ -691,12 +744,96 @@
       anexos: "Sem anexos informados."
     };
 
+    const REQUIRED_FIELDS = [
+      { name: "nomeContratante",    label: "Nome do contratante" },
+      { name: "cpfContratante",     label: "CPF" },
+      { name: "objeto",             label: "Objeto (Cláusula 2ª)" },
+      { name: "prazo",              label: "Prazo (Cláusula 3ª)" },
+      { name: "valorTotal",         label: "Valor total" },
+      { name: "valorTotalExtenso",  label: "Valor por extenso" },
+      { name: "pagamento",          label: "Forma de pagamento" },
+      { name: "dia",                label: "Dia" },
+      { name: "mes",                label: "Mês" },
+      { name: "ano",                label: "Ano" }
+    ];
+
+    const ALL_PROGRESS_FIELDS = [
+      "nomeContratante", "nacionalidadeContratante", "estadoCivilContratante",
+      "cpfContratante", "enderecoContratante", "bairroContratante",
+      "telefoneContratante", "emailContratante", "objeto", "prazo",
+      "valorTotal", "valorTotalExtenso", "pagamento", "dia", "mes", "ano"
+    ];
+
+    // ── Máscaras ──────────────────────────────────────────────────────────────
+
+    function applyMaskCPF(input) {
+      var d = input.value.replace(/\D/g, "").slice(0, 11);
+      if (d.length > 9)      d = d.slice(0,3) + "." + d.slice(3,6) + "." + d.slice(6,9) + "-" + d.slice(9);
+      else if (d.length > 6) d = d.slice(0,3) + "." + d.slice(3,6) + "." + d.slice(6);
+      else if (d.length > 3) d = d.slice(0,3) + "." + d.slice(3);
+      input.value = d;
+    }
+
+    function applyMaskPhone(input) {
+      var d = input.value.replace(/\D/g, "").slice(0, 11);
+      if      (d.length > 10) d = "(" + d.slice(0,2) + ") " + d.slice(2,7) + "-" + d.slice(7);
+      else if (d.length > 6)  d = "(" + d.slice(0,2) + ") " + d.slice(2,6) + "-" + d.slice(6);
+      else if (d.length > 2)  d = "(" + d.slice(0,2) + ") " + d.slice(2);
+      else if (d.length > 0)  d = "(" + d;
+      input.value = d;
+    }
+
+    function applyMaskCurrency(input) {
+      var raw = input.value.replace(/[^\d,]/g, "");
+      var parts = raw.split(",");
+      var intPart = (parts[0] || "").replace(/^0+/, "");
+      intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      if (parts.length > 1) {
+        input.value = (intPart || "0") + "," + parts[1].replace(/\D/g, "").slice(0, 2);
+      } else {
+        input.value = intPart;
+      }
+    }
+
+    // ── Validação ─────────────────────────────────────────────────────────────
+
+    function clearFieldErrors() {
+      form.querySelectorAll(".field-error").forEach(function (el) { el.classList.remove("field-error"); });
+    }
+
+    function validateRequiredFields() {
+      clearFieldErrors();
+      var missing = [];
+      REQUIRED_FIELDS.forEach(function (rf) {
+        var field = form.elements.namedItem(rf.name);
+        if (!field || !field.value.trim()) {
+          missing.push(rf.label);
+          if (field) field.classList.add("field-error");
+        }
+      });
+      return missing;
+    }
+
+    // ── Progresso ─────────────────────────────────────────────────────────────
+
+    function updateProgress() {
+      var total = ALL_PROGRESS_FIELDS.length;
+      var filled = ALL_PROGRESS_FIELDS.filter(function (name) {
+        var f = form.elements.namedItem(name);
+        return f && f.value.trim() !== "";
+      }).length;
+      var pct = Math.round((filled / total) * 100);
+      document.getElementById("progressBar").style.width = pct + "%";
+      document.getElementById("progressLabel").textContent =
+        filled + " de " + total + " campos preenchidos (" + pct + "%)";
+    }
+
+    // ── Contrato ──────────────────────────────────────────────────────────────
+
     function updateField(name, value) {
       const elements = document.querySelectorAll("." + name);
       const text = value.trim() || defaults[name];
-      elements.forEach(function (el) {
-        el.textContent = text;
-      });
+      elements.forEach(function (el) { el.textContent = text; });
     }
 
     function setAnexoImagem(dataUrl) {
@@ -733,22 +870,19 @@
         }
       });
       setAnexoImagem(data.anexoImagemDataUrl || "");
-      if (anexoImagemInput instanceof HTMLInputElement) {
-        anexoImagemInput.value = "";
-      }
+      if (anexoImagemInput instanceof HTMLInputElement) anexoImagemInput.value = "";
+      updateProgress();
     }
+
+    // ── Rascunhos salvos ──────────────────────────────────────────────────────
 
     function readSavedItems() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-          return [];
-        }
+        if (!raw) return [];
         const parsed = JSON.parse(raw);
         return Array.isArray(parsed) ? parsed : [];
-      } catch (_error) {
-        return [];
-      }
+      } catch (_) { return []; }
     }
 
     function writeSavedItems(items) {
@@ -756,8 +890,7 @@
     }
 
     function formatSavedDate(isoDate) {
-      const date = new Date(isoDate);
-      return date.toLocaleString("pt-BR");
+      return new Date(isoDate).toLocaleString("pt-BR");
     }
 
     function renderSavedList() {
@@ -778,8 +911,10 @@
 
         const title = document.createElement("p");
         title.className = "saved-title";
-        const nome = (item.data && item.data.nomeContratante) ? item.data.nomeContratante : "Sem nome";
-        title.textContent = nome + " - " + formatSavedDate(item.savedAt);
+        var displayLabel = item.label
+          ? item.label + " — " + formatSavedDate(item.savedAt)
+          : ((item.data && item.data.nomeContratante) || "Sem nome") + " — " + formatSavedDate(item.savedAt);
+        title.textContent = displayLabel;
 
         const actions = document.createElement("div");
         actions.className = "saved-actions";
@@ -788,19 +923,14 @@
         loadButton.type = "button";
         loadButton.className = "btn-secondary";
         loadButton.textContent = "Carregar";
-        loadButton.addEventListener("click", function () {
-          applyFormData(item.data || {});
-        });
+        loadButton.addEventListener("click", function () { applyFormData(item.data || {}); });
 
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
         deleteButton.className = "btn-secondary";
         deleteButton.textContent = "Excluir";
         deleteButton.addEventListener("click", function () {
-          const nextItems = readSavedItems().filter(function (saved) {
-            return saved.id !== item.id;
-          });
-          writeSavedItems(nextItems);
+          writeSavedItems(readSavedItems().filter(function (s) { return s.id !== item.id; }));
           renderSavedList();
         });
 
@@ -812,55 +942,65 @@
       });
     }
 
+    // ── Seletores de data ─────────────────────────────────────────────────────
+
     function populateDateSelects() {
       const daySelect = document.getElementById("dia");
       const yearSelect = document.getElementById("ano");
       const currentYear = new Date().getFullYear();
-
-      for (let day = 1; day <= 31; day += 1) {
-        const option = document.createElement("option");
-        option.value = String(day);
-        option.textContent = String(day);
-        daySelect.appendChild(option);
+      for (let day = 1; day <= 31; day++) {
+        const o = document.createElement("option");
+        o.value = o.textContent = String(day);
+        daySelect.appendChild(o);
       }
-
-      for (let year = currentYear - 5; year <= currentYear + 10; year += 1) {
-        const option = document.createElement("option");
-        option.value = String(year);
-        option.textContent = String(year);
-        yearSelect.appendChild(option);
+      for (let year = currentYear - 5; year <= currentYear + 10; year++) {
+        const o = document.createElement("option");
+        o.value = o.textContent = String(year);
+        yearSelect.appendChild(o);
       }
     }
 
     populateDateSelects();
 
+    // ── Imagem anexa ──────────────────────────────────────────────────────────
+
     anexoImagemInput.addEventListener("change", function () {
       const file = anexoImagemInput.files && anexoImagemInput.files[0];
-      if (!file) {
-        setAnexoImagem("");
-        return;
-      }
-
+      if (!file) { setAnexoImagem(""); return; }
       const reader = new FileReader();
-      reader.onload = function () {
-        setAnexoImagem(typeof reader.result === "string" ? reader.result : "");
-      };
-      reader.onerror = function () {
-        setAnexoImagem("");
-        alert("Não foi possível carregar a imagem.");
-      };
+      reader.onload = function () { setAnexoImagem(typeof reader.result === "string" ? reader.result : ""); };
+      reader.onerror = function () { setAnexoImagem(""); alert("Não foi possível carregar a imagem."); };
       reader.readAsDataURL(file);
     });
 
+    // ── Listeners de máscara (nível elemento, disparam antes do bubbling) ─────
+
+    document.getElementById("cpfContratante").addEventListener("input", function () {
+      applyMaskCPF(this);
+      updateField("cpfContratante", this.value);
+    });
+
+    document.getElementById("telefoneContratante").addEventListener("input", function () {
+      applyMaskPhone(this);
+      updateField("telefoneContratante", this.value);
+    });
+
+    document.getElementById("valorTotal").addEventListener("input", function () {
+      applyMaskCurrency(this);
+      updateField("valorTotal", this.value);
+    });
+
+    // ── Sync geral do formulário ──────────────────────────────────────────────
+
+    const MASKED_FIELDS = ["cpfContratante", "telefoneContratante", "valorTotal"];
+
     function syncContractField(event) {
       const target = event.target;
-      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) {
-        return;
-      }
-      if (!defaults[target.name]) {
-        return;
-      }
-      updateField(target.name, target.value);
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) return;
+      if (!Object.prototype.hasOwnProperty.call(defaults, target.name)) return;
+      if (MASKED_FIELDS.indexOf(target.name) === -1) updateField(target.name, target.value);
+      target.classList.remove("field-error");
+      updateProgress();
     }
 
     form.addEventListener("input", syncContractField);
@@ -873,40 +1013,103 @@
       }
     });
 
+    // ── Imprimir ──────────────────────────────────────────────────────────────
+
     printButton.addEventListener("click", function () {
-      window.print();
-    });
-
-    saveDraftButton.addEventListener("click", function () {
-      const data = getFormData();
-      const hasAnyValue = Object.values(data).some(function (value) {
-        return String(value || "").trim() !== "";
-      });
-
-      if (!hasAnyValue) {
-        alert("Preencha pelo menos um campo antes de salvar.");
+      // 1. Validação
+      var missing = validateRequiredFields();
+      if (missing.length > 0) {
+        alert("Preencha os campos obrigatórios antes de imprimir:\n\n• " + missing.join("\n• "));
+        var firstName = REQUIRED_FIELDS.find(function (rf) { return missing.indexOf(rf.label) !== -1; });
+        if (firstName) {
+          var el = form.elements.namedItem(firstName.name);
+          if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.focus(); }
+        }
         return;
       }
 
-      const items = readSavedItems();
-      const newItem = {
-        id: String(Date.now()),
-        savedAt: new Date().toISOString(),
-        data: data
-      };
+      // 2. Estimativa de páginas
+      var contract = document.querySelector(".contract");
+      var MM_TO_PX = 96 / 25.4;
+      var MARGIN_MM = 13;
+      var usableH = (297 - MARGIN_MM * 2) * MM_TO_PX;
+      var origStyle = contract.getAttribute("style") || "";
 
-      items.unshift(newItem);
+      contract.style.fontFamily = '"Times New Roman", Times, serif';
+      contract.style.lineHeight = "1.2";
+      contract.style.textAlign = "justify";
+
+      var fontSize = 9.8;
+      var minFontSize = 9.0;
+      contract.style.fontSize = fontSize + "pt";
+
+      while (fontSize > minFontSize && contract.scrollHeight > usableH * 2) {
+        fontSize -= 0.2;
+        contract.style.fontSize = fontSize.toFixed(1) + "pt";
+      }
+
+      var estimatedPages = Math.max(1, Math.ceil(contract.scrollHeight / usableH));
+      var finalFontSize = fontSize.toFixed(1);
+      contract.setAttribute("style", origStyle);
+
+      // 3. Confirmação com estimativa
+      var pageWord = estimatedPages === 1 ? "página" : "páginas";
+      if (!window.confirm("Este contrato vai gerar aproximadamente " + estimatedPages + " " + pageWord + ".\n\nDeseja continuar com a impressão?")) return;
+
+      // 4. Injeta CSS compacto e imprime
+      var compactStyle = document.createElement("style");
+      compactStyle.textContent = [
+        "@media print {",
+        "  @page {",
+        "    margin: " + MARGIN_MM + "mm " + MARGIN_MM + "mm 18mm " + MARGIN_MM + "mm;",
+        "    @bottom-center { content: 'Página ' counter(page) ' de ' counter(pages); font-size: 8pt; color: #555; font-family: 'Times New Roman', Times, serif; }",
+        "  }",
+        "  .contract { font-size: " + finalFontSize + "pt !important; line-height: 1.2 !important; }",
+        "  .title { margin-bottom: 8px; }",
+        "  .clause-title { margin-top: 7px; margin-bottom: 3px; }",
+        "  .clause { margin-bottom: 3px; }",
+        "  .signature-block { margin-top: 10px; }",
+        "  .logo-empresa { height: 40px; }",
+        "  .contract-header { margin-bottom: 6px; }",
+        "}"
+      ].join("\n");
+      document.head.appendChild(compactStyle);
+
+      function cleanup() {
+        if (compactStyle.parentNode) document.head.removeChild(compactStyle);
+        window.removeEventListener("afterprint", cleanup);
+      }
+      window.addEventListener("afterprint", cleanup);
+      window.print();
+    });
+
+    // ── Salvar rascunho ───────────────────────────────────────────────────────
+
+    saveDraftButton.addEventListener("click", function () {
+      const data = getFormData();
+      const hasAnyValue = Object.values(data).some(function (v) { return String(v || "").trim() !== ""; });
+      if (!hasAnyValue) { alert("Preencha pelo menos um campo antes de salvar."); return; }
+
+      var defaultName = (data.nomeContratante || "").trim() || "Sem nome";
+      var label = window.prompt("Nome para identificar este preenchimento:", defaultName);
+      if (label === null) return;
+
+      const items = readSavedItems();
+      items.unshift({ id: String(Date.now()), savedAt: new Date().toISOString(), label: label.trim() || defaultName, data: data });
       writeSavedItems(items);
       renderSavedList();
       alert("Preenchimento salvo com sucesso.");
     });
 
-    clearFormButton.addEventListener("click", function () {
-      applyFormData({});
-    });
+    // ── Limpar formulário ─────────────────────────────────────────────────────
+
+    clearFormButton.addEventListener("click", function () { applyFormData({}); });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
 
     setAnexoImagem("");
     renderSavedList();
+    updateProgress();
   </script>
 </body>
 </html>
