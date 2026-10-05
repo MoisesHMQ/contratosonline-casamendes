@@ -263,6 +263,51 @@
       font-size: 0.92rem;
     }
 
+    .anexo-imagem-box + .anexo-imagem-box { margin-top: 10px; }
+
+    .anexo-imagem-box.anexo-pdf {
+      max-width: 100%;
+    }
+
+    .anexo-imagem-box.anexo-pdf .anexo-imagem {
+      max-height: none;
+      width: 100%;
+      margin-bottom: 6px;
+    }
+
+    .anexo-legenda {
+      margin: 0 0 6px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .anexos-lista {
+      display: grid;
+      gap: 6px;
+    }
+
+    .anexos-lista-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid #d7e0ea;
+      border-radius: 10px;
+      padding: 6px 8px;
+      background: #fff;
+      font-size: 0.88rem;
+      overflow-wrap: anywhere;
+    }
+
+    .anexos-lista-item button {
+      width: auto;
+      min-height: 34px;
+      margin-top: 0;
+      padding: 4px 12px;
+      font-size: 0.85rem;
+    }
+
     .progress-wrapper {
       margin-bottom: 14px;
       padding: 10px 12px;
@@ -483,6 +528,12 @@
       .anexo-imagem {
         max-height: 180px;
       }
+      .anexo-imagem-box.anexo-pdf .anexo-imagem {
+        max-height: 240mm;
+        width: auto;
+        margin: 0 auto 6px;
+      }
+      .anexo-imagem-box { break-inside: avoid; page-break-inside: avoid; }
     }
   </style>
 </head>
@@ -524,7 +575,7 @@
         <label for="objeto">Cláusula 2ª - Objeto</label>
         <textarea id="objeto" name="objeto" placeholder="Descreva o serviço que irá ser prestado"></textarea>
 
-        <label for="prazo">Cláusula 3ª - Prazo (dias)</label>
+        <label for="prazo">Cláusula 3ª - Prazo (dias úteis)</label>
         <input id="prazo" name="prazo" type="number" min="1" step="1" placeholder="Ex.: 30">
 
         <label for="valorTotal">Cláusula 4ª - Valor total (R$)</label>
@@ -566,8 +617,9 @@
         <label for="anexos">Cláusula 11ª - Anexos</label>
         <textarea id="anexos" name="anexos" placeholder="Ex.: projeto executivo, memorial descritivo, imagens e medidas"></textarea>
 
-        <label for="anexoImagem">Cláusula 11ª - Imagem anexa</label>
-        <input id="anexoImagem" name="anexoImagem" type="file" accept="image/*">
+        <label for="anexoArquivos">Cláusula 11ª - Imagens e PDFs anexos</label>
+        <input id="anexoArquivos" name="anexoArquivos" type="file" accept="image/*,application/pdf,.pdf" multiple>
+        <div id="anexosLista" class="anexos-lista"></div>
 
         <button type="button" id="printButton">Imprimir / Salvar PDF</button>
         <div class="actions-grid">
@@ -607,7 +659,7 @@
 
         <section class="clause">
           <div class="clause-title">CLÁUSULA 3ª – PRAZO</div>
-          O presente contrato terá o prazo de <span class="dynamic prazo">___</span> dias,
+          O presente contrato terá o prazo de <span class="dynamic prazo">___</span> dias úteis,
           a partir da assinatura do contrato.
         </section>
 
@@ -668,10 +720,7 @@
 
           Poderão integrar este contrato, para todos os fins de direito, os seguintes anexos: Documento de Identificação,
           Cronograma de Serviços, Proposta Comercial e Projetos de Arquitetura.
-          <div class="anexo-imagem-box">
-            <img id="anexoImagemPreview" class="anexo-imagem" alt="Imagem anexa do contrato" style="display: none;">
-            <p id="anexoImagemVazio" class="anexo-imagem-vazio">Nenhuma imagem anexa enviada.</p>
-          </div>
+          <div id="anexosContrato"></div>
         </section>
 
         <section class="clause">
@@ -717,12 +766,15 @@
     const saveDraftButton = document.getElementById("saveDraftButton");
     const clearFormButton = document.getElementById("clearFormButton");
     const savedList = document.getElementById("savedList");
-    const anexoImagemInput = document.getElementById("anexoImagem");
-    const anexoImagemPreview = document.getElementById("anexoImagemPreview");
-    const anexoImagemVazio = document.getElementById("anexoImagemVazio");
+    const anexoArquivosInput = document.getElementById("anexoArquivos");
+    const anexosContrato = document.getElementById("anexosContrato");
+    const anexosLista = document.getElementById("anexosLista");
+    const MAX_PDF_PAGES = 20;
+    const PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    const PDFJS_WORKER_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
     const STORAGE_KEY = "contrato_marcenaria_ultimos_10";
     const MAX_SAVED = 10;
-    let anexoImagemDataUrl = "";
+    let anexosArquivos = []; // [{ name, kind: "image" | "pdf", pages: [dataUrl] }]
 
     const defaults = {
       nomeContratante: "preencher nome",
@@ -836,17 +888,61 @@
       elements.forEach(function (el) { el.textContent = text; });
     }
 
-    function setAnexoImagem(dataUrl) {
-      anexoImagemDataUrl = dataUrl || "";
-      if (anexoImagemDataUrl) {
-        anexoImagemPreview.src = anexoImagemDataUrl;
-        anexoImagemPreview.style.display = "block";
-        anexoImagemVazio.style.display = "none";
-      } else {
-        anexoImagemPreview.removeAttribute("src");
-        anexoImagemPreview.style.display = "none";
-        anexoImagemVazio.style.display = "block";
+    function setAnexos(items) {
+      anexosArquivos = Array.isArray(items) ? items : [];
+      renderAnexos();
+    }
+
+    function renderAnexos() {
+      anexosContrato.innerHTML = "";
+      anexosLista.innerHTML = "";
+
+      if (anexosArquivos.length === 0) {
+        const vazio = document.createElement("p");
+        vazio.className = "anexo-imagem-vazio";
+        vazio.textContent = "Nenhum arquivo anexo enviado.";
+        const box = document.createElement("div");
+        box.className = "anexo-imagem-box";
+        box.appendChild(vazio);
+        anexosContrato.appendChild(box);
+        return;
       }
+
+      anexosArquivos.forEach(function (item, index) {
+        const box = document.createElement("div");
+        box.className = "anexo-imagem-box" + (item.kind === "pdf" ? " anexo-pdf" : "");
+        if (item.kind === "pdf") {
+          const legenda = document.createElement("p");
+          legenda.className = "anexo-legenda";
+          legenda.textContent = "Anexo " + (index + 1) + " – " + item.name;
+          box.appendChild(legenda);
+        }
+        item.pages.forEach(function (src) {
+          const img = document.createElement("img");
+          img.className = "anexo-imagem";
+          img.alt = item.name;
+          img.src = src;
+          box.appendChild(img);
+        });
+        anexosContrato.appendChild(box);
+
+        const row = document.createElement("div");
+        row.className = "anexos-lista-item";
+        const nome = document.createElement("span");
+        nome.textContent = (item.kind === "pdf" ? "PDF" : "Imagem") + ": " + item.name +
+          (item.kind === "pdf" ? " (" + item.pages.length + " pág.)" : "");
+        const rm = document.createElement("button");
+        rm.type = "button";
+        rm.className = "btn-secondary";
+        rm.textContent = "Remover";
+        rm.addEventListener("click", function () {
+          anexosArquivos.splice(index, 1);
+          renderAnexos();
+        });
+        row.appendChild(nome);
+        row.appendChild(rm);
+        anexosLista.appendChild(row);
+      });
     }
 
     function getFormData() {
@@ -857,7 +953,7 @@
           data[name] = field.value;
         }
       });
-      data.anexoImagemDataUrl = anexoImagemDataUrl;
+      data.anexosArquivos = anexosArquivos;
       return data;
     }
 
@@ -869,8 +965,15 @@
           updateField(name, field.value);
         }
       });
-      setAnexoImagem(data.anexoImagemDataUrl || "");
-      if (anexoImagemInput instanceof HTMLInputElement) anexoImagemInput.value = "";
+      if (Array.isArray(data.anexosArquivos)) {
+        setAnexos(data.anexosArquivos);
+      } else if (data.anexoImagemDataUrl) {
+        // compatibilidade com rascunhos antigos (imagem única)
+        setAnexos([{ name: "Imagem anexa", kind: "image", pages: [data.anexoImagemDataUrl] }]);
+      } else {
+        setAnexos([]);
+      }
+      anexoArquivosInput.value = "";
       updateProgress();
     }
 
@@ -886,7 +989,10 @@
     }
 
     function writeSavedItems(items) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, MAX_SAVED)));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, MAX_SAVED)));
+        return true;
+      } catch (_) { return false; }
     }
 
     function formatSavedDate(isoDate) {
@@ -962,15 +1068,107 @@
 
     populateDateSelects();
 
-    // ── Imagem anexa ──────────────────────────────────────────────────────────
+    // ── Anexos (imagens e PDFs) ───────────────────────────────────────────────
 
-    anexoImagemInput.addEventListener("change", function () {
-      const file = anexoImagemInput.files && anexoImagemInput.files[0];
-      if (!file) { setAnexoImagem(""); return; }
-      const reader = new FileReader();
-      reader.onload = function () { setAnexoImagem(typeof reader.result === "string" ? reader.result : ""); };
-      reader.onerror = function () { setAnexoImagem(""); alert("Não foi possível carregar a imagem."); };
-      reader.readAsDataURL(file);
+    function readFileAs(file, method) {
+      return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function () { resolve(reader.result); };
+        reader.onerror = function () { reject(reader.error); };
+        reader[method](file);
+      });
+    }
+
+    function canvasToJpeg(canvas, quality) {
+      // fundo branco para evitar fundo preto em PNG transparente
+      const out = document.createElement("canvas");
+      out.width = canvas.width;
+      out.height = canvas.height;
+      const ctx = out.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(canvas, 0, 0);
+      return out.toDataURL("image/jpeg", quality);
+    }
+
+    async function imageFileToDataUrl(file) {
+      const dataUrl = await readFileAs(file, "readAsDataURL");
+      const img = await new Promise(function (resolve, reject) {
+        const el = new Image();
+        el.onload = function () { resolve(el); };
+        el.onerror = reject;
+        el.src = dataUrl;
+      });
+      const MAX = 1600;
+      const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      return canvasToJpeg(canvas, 0.8);
+    }
+
+    let pdfjsPromise = null;
+    function loadPdfJs() {
+      if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+      if (!pdfjsPromise) {
+        pdfjsPromise = new Promise(function (resolve, reject) {
+          const script = document.createElement("script");
+          script.src = PDFJS_URL;
+          script.onload = function () {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+            resolve(window.pdfjsLib);
+          };
+          script.onerror = function () { pdfjsPromise = null; reject(new Error("pdf.js")); };
+          document.head.appendChild(script);
+        });
+      }
+      return pdfjsPromise;
+    }
+
+    async function pdfFileToImages(file) {
+      const pdfjsLib = await loadPdfJs();
+      const buffer = await readFileAs(file, "readAsArrayBuffer");
+      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      const total = Math.min(pdf.numPages, MAX_PDF_PAGES);
+      const pages = [];
+      for (let i = 1; i <= total; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        await page.render({ canvasContext: canvas.getContext("2d"), viewport: viewport }).promise;
+        pages.push(canvasToJpeg(canvas, 0.75));
+      }
+      return { pages: pages, truncated: pdf.numPages > total };
+    }
+
+    anexoArquivosInput.addEventListener("change", async function () {
+      const files = Array.from(anexoArquivosInput.files || []);
+      if (files.length === 0) return;
+      anexoArquivosInput.disabled = true;
+      const errors = [];
+      for (const file of files) {
+        try {
+          const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+          if (isPdf) {
+            const result = await pdfFileToImages(file);
+            anexosArquivos.push({ name: file.name, kind: "pdf", pages: result.pages });
+            if (result.truncated) errors.push(file.name + ": apenas as primeiras " + MAX_PDF_PAGES + " páginas foram anexadas.");
+          } else if (file.type.indexOf("image/") === 0) {
+            anexosArquivos.push({ name: file.name, kind: "image", pages: [await imageFileToDataUrl(file)] });
+          } else {
+            errors.push(file.name + ": tipo de arquivo não suportado.");
+          }
+        } catch (_) {
+          errors.push(file.name + ": não foi possível carregar o arquivo.");
+        }
+      }
+      anexoArquivosInput.value = "";
+      anexoArquivosInput.disabled = false;
+      renderAnexos();
+      if (errors.length) alert(errors.join("\n"));
     });
 
     // ── Listeners de máscara (nível elemento, disparam antes do bubbling) ─────
@@ -1096,7 +1294,10 @@
 
       const items = readSavedItems();
       items.unshift({ id: String(Date.now()), savedAt: new Date().toISOString(), label: label.trim() || defaultName, data: data });
-      writeSavedItems(items);
+      if (!writeSavedItems(items)) {
+        alert("Não foi possível salvar: o espaço do navegador está cheio (anexos muito grandes). Remova alguns anexos ou exclua preenchimentos antigos.");
+        return;
+      }
       renderSavedList();
       alert("Preenchimento salvo com sucesso.");
     });
@@ -1107,7 +1308,7 @@
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
-    setAnexoImagem("");
+    renderAnexos();
     renderSavedList();
     updateProgress();
   </script>
